@@ -11,6 +11,4 @@ import java.util.Optional;
 public interface EmployeeRepository extends CrudRepository<Employee, String> {
 
     Optional<Employee> findByFirstname(String firstname);
-
-
 }
