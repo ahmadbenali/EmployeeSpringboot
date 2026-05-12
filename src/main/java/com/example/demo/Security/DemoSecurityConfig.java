@@ -1,37 +1,56 @@
 package com.example.demo.Security;
 
 
+import com.example.demo.Service.MongoUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class DemoSecurityConfig {
 
-    //user accounts hard coded in java source code
-    @Bean
-    public InMemoryUserDetailsManager userDetailsManager() {
 
-        UserDetails ahmad= User.builder().username("ahmad").password("{noop}ahmad").roles("Employee").build();
-        UserDetails ali= User.builder().username("ali").password("{noop}ali").roles("Employee","Manager").build();
-        UserDetails safaa= User.builder().username("safaa").password("{noop}safaa").roles("Employee","Manager","Admin").build();
+    // Replace InMemoryUserDetailsManager with MongoDB-backed auth
+    private final MongoUserDetailsService mongoUserDetailsService;
 
-        return new  InMemoryUserDetailsManager(ahmad,ali,safaa);
+    public DemoSecurityConfig(MongoUserDetailsService mongoUserDetailsService) {
+        this.mongoUserDetailsService = mongoUserDetailsService;
     }
 
-    //add database access
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
 
+        DaoAuthenticationProvider auth = new DaoAuthenticationProvider();
+        auth.setUserDetailsService(mongoUserDetailsService);
+        auth.setPasswordEncoder(passwordEncoder());
+        return auth;
+
+    }
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return NoOpPasswordEncoder.getInstance(); // no encoding, plain text
+    }
+
+
+    //add database access
     @Bean
     public SecurityFilterChain FilterChain(HttpSecurity http) throws Exception {
+
+        http.authenticationProvider(authenticationProvider());
+
         http.authorizeHttpRequests(configurer
                 ->configurer
+
                 .requestMatchers(HttpMethod.GET,"/employees").hasRole("Employee")
                 .requestMatchers(HttpMethod.GET,"/employees/**").hasRole("Employee")
 
